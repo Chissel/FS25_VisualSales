@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="106">
+    <author>Chissel</author>
+    <version>1.0.0.0</version>
+    <title>
+        <en>Visual Sales</en>
+        <de>Sichtbare Gebrauchtfahrzeuge</de>
+    </title>
+    <description>
+<en>
+<![CDATA[
+This mod presents the current used machines at the dealer so that you can inspect them before purchasing. This mod only works on standard maps and mod maps that have this feature built in.
+]]>
+</en>
+<de>
+<![CDATA[
+Mit dieser Mod werden die aktuellen Gebrauchtmaschinen beim Händler präsentiert, sodass man diese vor dem Kauf begutachten kann. Diese Mod funktioniert nur auf Standardkarten und auf Mod Maps, die dieses Feature verbaut haben.
+]]>
+</de>
+</description>
+    <iconFilename>icon_visualSales.dds</iconFilename>
+    <multiplayer supported="true"/>
+    <l10n filenamePrefix="translations/translation"/>
+
+    <extraSourceFiles>
+        <sourceFile filename="src/VisualSalesManager.lua"/>
+    </extraSourceFiles>
+</modDesc>

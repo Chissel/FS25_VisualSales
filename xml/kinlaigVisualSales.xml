@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<visualSales>
+    <!-- position without y value sets it to terrain height -->
+    <!--spot position="0 0" rotation="0 0 0" maxWidth="15" maxLength="15" brands="JOHNDEERE CLAAS" categories="TRACTORSS TRACTORSL TRACTORSXL"/-->
+    <spot position="-291 -308" rotation="0 180 0" maxWidth="15" maxLength="16"/>
+    <spot position="-283 -300" rotation="0 180 0" maxWidth="15" maxLength="16"/>
+    <spot position="-275 -292" rotation="0 180 0" maxWidth="15" maxLength="16"/>
+    <spot position="-267 -284" rotation="0 180 0" maxWidth="15" maxLength="16"/>
+</visualSales>

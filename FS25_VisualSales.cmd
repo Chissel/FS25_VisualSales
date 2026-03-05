@@ -1,0 +1,1 @@
+"C:\Program Files\7-Zip\7z.exe" a -tzip "C:\Users\chris\Documents\My Games\FarmingSimulator2025\mods\FS25_VisualSales.zip" -x@FileDefinition.txt
