@@ -1,0 +1,58 @@
+English:
+
+Installation instructions:
+
+1. Create visualSales.xml:
+
+The XML files for the standard maps can be used as an example. The following values are mandatory for each spot:
+    1. position: Specifies the position on the map. The Y coordinate can be omitted here if the used vehicle is simply to be parked on the terrain at that location.
+    2. rotation: Specifies the rotation of the used vehicle.
+
+The following entries are optional:
+    1. maxWidth: Specifies the maximum width (in meters) of the used vehicle that can be placed on the spot.
+    2. maxLength: Specifies the maximum length (in meters) of the used vehicle that can be placed on the spot.
+    3. brands: This can be used to reserve the spot for used vehicles of certain brands.
+    4. categories: This allows the spot to be reserved for specific categories.
+
+Example:
+<visualSales>
+    <spot position="0 0" rotation="0 0 0" maxWidth="15" maxLength="15" brands="JOHNDEERE CLAAS" categories="TRACTORSS TRACTORSL TRACTORSXL"/>
+</visualSales>
+
+2. Link XML in map.xml. The entry must look as follows (filename is the path to the xml file):
+
+Example:
+<visualSales filename="maps/config/visualSales.xml" />
+
+
+
+
+
+
+
+German:
+
+
+Einbau Anleitung:
+
+1. visualSales.xml anlegen:
+
+Als Beispiel können die xml Datein für die Standardkarten genommen werden. Folgende Werte sind pro Spot verpflichtend:
+    1. position: Gibt die Position auf der Karte an. Hier kann die Y Koordinate weggelassen werden, wenn das Gebrauchtfahrzeug einfach an der Stelle auf das Terrian abgestellt werden soll.
+    2. rotation: Gibt die Rotation des Gebrauchtfahrzeugs an.
+
+Folgende Einträge sind optional:
+    1. maxWidth: Gibt die maximale Breite (in Metern) des Gebrauchtfahrzeugs an, welches auf dem Spot plaziert werden kann
+    2. maxLength: Gibt die maximale Länge (in Metern) des Gebrauchtfahrzeugs an, welches auf dem Spot plaziert werden kann
+    3. brands: Hiermit kann der Spot für Gebrauchtfahrzeuge bestimmter Marken reserviert werden.
+    4. categories: Hiermit kann der Spot für bestimmte Kategorien reserviert werden.
+
+Beispiel:
+<visualSales>
+    <spot position="0 0" rotation="0 0 0" maxWidth="15" maxLength="15" brands="JOHNDEERE CLAAS" categories="TRACTORSS TRACTORSL TRACTORSXL"/>
+</visualSales>
+
+2. XML in der map.xml verlinken. Der Eintrag muss wie folgt aussehen (filename ist der Pfad zur xml Datei):
+
+Beispiel:
+<visualSales filename="maps/config/visualSales.xml" />
