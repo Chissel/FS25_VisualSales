@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="106">
     <author>Chissel</author>
-    <version>1.0.0.0</version>
+    <version>1.0.1.0</version>
     <title>
         <en>Visual Sales</en>
         <de>Sichtbare Gebrauchtfahrzeuge</de>
@@ -12,6 +12,12 @@
 This mod presents the current used machines at the dealer so that you can inspect them before purchasing. This mod only works on standard maps and mod maps that have this feature built in.
 
 Installation instructions are included in the mod.
+
+Changelog: 1.0.0.1:
+    1.) Add missing installation instructions
+
+
+Changelog: 1.0.1.0:
 ]]>
 </en>
 <de>
@@ -19,6 +25,9 @@ Installation instructions are included in the mod.
 Mit dieser Mod werden die aktuellen Gebrauchtmaschinen beim Händler präsentiert, sodass man diese vor dem Kauf begutachten kann. Diese Mod funktioniert nur auf Standardkarten und auf Mod Maps, die dieses Feature verbaut haben.
 
 Einbauanleitung liegt in der Mod.
+
+Changelog: 1.0.1.0:
+    1.) Abnutzungserscheinungen, Schaden hinzugefügt
 ]]>
 </de>
 </description>

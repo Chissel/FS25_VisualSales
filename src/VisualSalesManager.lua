@@ -14,7 +14,7 @@ function VisualSalesManager.new(customMt)
 	local self = VisualSalesManager:superClass().new(customMt or VisualSalesManager_mt)
 
     self.spots = {}
-    
+
     g_messageCenter:subscribe(MessageType.DAY_CHANGED, self.onDayChanged, self)
 
     return self
@@ -110,6 +110,7 @@ function VisualSalesManager:isSpotValidForItem(spot, storeItem)
 end
 
 function VisualSalesManager:addSale(item, _)
+    Logging.devInfo("Add sale: "..item.id)
     if not g_currentMission:getIsServer() then
         return
     end
@@ -127,11 +128,16 @@ function VisualSalesManager:addSale(item, _)
         end
 
         if spot == nil then
+            Logging.devInfo("Add sale: No spot available")
             return
         end
 
         spot.free = false
         spot.saleId = item.id
+        spot.vehicleParams = {
+            damage = item.damage,
+            wear = item.wear
+        }
         if item.boughtConfigurations ~= nil then
             data:setBoughtConfigurations(item.boughtConfigurations)
         end
@@ -139,11 +145,13 @@ function VisualSalesManager:addSale(item, _)
         data:setRotation(spot.rotation.x, spot.rotation.y, spot.rotation.z)
         data:setPosition(spot.position.x, spot.position.y, spot.position.z)
         data:setOwnerFarmId(FarmManager.INVALID_FARM_ID)
+
         data:load(function(_, loadedVehicles, vehicleLoadState, _)
             if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
                 spot.vehicleIds = {}
                 for _, vehicle in ipairs(loadedVehicles) do
                     table.insert(spot.vehicleIds, vehicle:getUniqueId())
+                    self:addVehicleParams(vehicle, spot.vehicleParams)
                 end
 
                 Logging.info("Load vehicle successfully")
@@ -170,7 +178,7 @@ function VisualSalesManager:removeSale(item, index, noEventSend)
     if not g_currentMission:getIsServer() then
         return
     end
-    
+
     local spot = self:getSpotForSaleId(index)
 
     if spot == nil then
@@ -178,16 +186,19 @@ function VisualSalesManager:removeSale(item, index, noEventSend)
     end
 
     if spot == nil then
+        Logging.devInfo("Remove Sale: Vehicle not found")
         return
     end
 
     if #spot.vehicleIds == 0 then
         spot.isRemoved = true
+        Logging.devInfo("Remove sale: vehicles not loaded yet")
     end
 
     local vehicleSystem = g_currentMission.vehicleSystem
 
     for _, vehicleId in ipairs(spot.vehicleIds) do
+        Logging.devInfo("Remove sale with id: "..vehicleId)
         local vehicle = vehicleSystem:getVehicleByUniqueId(vehicleId)
 
         if vehicle == nil then
@@ -200,12 +211,19 @@ function VisualSalesManager:removeSale(item, index, noEventSend)
     spot.free = true
     spot.vehicleIds = {}
     spot.saleId = nil
+    spot.vehicleParams = {}
 end
 
 VehicleSaleSystem.removeSale = Utils.overwrittenFunction(VehicleSaleSystem.removeSale, function(saleSystem, superFunc, item, index, noEventSend)
     superFunc(saleSystem, item, index, noEventSend)
     g_visualSalesManager:removeSale(item, index, noEventSend)
 end)
+
+
+function VisualSalesManager:addVehicleParams(vehicle, params)
+    vehicle:addDamageAmount(params.damage or 0, true)
+	vehicle:addWearAmount(params.wear or 0, true)
+end
 
 function VisualSalesManager:loadMap(filename)
 	local xmlFile = g_currentMission.xmlFile
