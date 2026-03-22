@@ -14,8 +14,7 @@ This mod presents the current used machines at the dealer so that you can inspec
 Installation instructions are included in the mod.
 
 Changelog: 1.0.0.1:
-    1.) Add missing installation instructions
-
+    1. Add missing installation instructions
 
 Changelog: 1.0.1.0:
 ]]>
@@ -26,9 +25,14 @@ Mit dieser Mod werden die aktuellen Gebrauchtmaschinen beim Händler präsentier
 
 Einbauanleitung liegt in der Mod.
 
+Changelog 1.0.0.1:
+    1. Fehlende Einbauanleitung hinzugefügt
+
 Changelog: 1.0.1.0:
-    1.) Abnutzungserscheinungen, Schaden hinzugefügt
-    1.) Kollisionserkennung hinzugefügt
+    1. Abnutzungserscheinungen, Schaden hinzugefügt
+    2. Kollisionserkennung hinzugefügt
+    3. Fehler behoben, sodass gekaufte Gebrauchtfahrzeuge nicht verschwinden
+    3. Fehler behoben, bei dem Gebrauchtfahrzeuge, die nicht mehr zum Verkauf stehen, nicht entfernt wurden
 ]]>
 </de>
 </description>

@@ -42,13 +42,15 @@ function VisualSalesManager:onDayChanged()
     local usedValues = {}
     local randomIndex
 
-    for i=1, #items do
-        while randomIndex == nil or usedValues[randomIndex] ~= nil do
-            randomIndex = math.random(1, #items)
+    g_asyncTaskManager:addTask(function()
+        for i=1, #items do
+            while randomIndex == nil or usedValues[randomIndex] ~= nil do
+                randomIndex = math.random(1, #items)
+            end
+            usedValues[randomIndex] = true
+            self:addSale(items[randomIndex])
         end
-        usedValues[randomIndex] = true
-        self:addSale(items[randomIndex])
-    end
+	end)
 end
 
 function VisualSalesManager:getFreeSpot()
@@ -62,6 +64,10 @@ function VisualSalesManager:getFreeSpot()
 end
 
 function VisualSalesManager:getSpotForSaleId(id)
+    if id == nil then
+        return nil
+    end
+
     for index, spot in self.spots do
         if spot.saleId == id then
             return spot
@@ -121,7 +127,7 @@ function VisualSalesManager:addSale(item, _)
     if data.isValid then
         local spot
         for _, currentSpot in pairs(self.spots) do
-            if currentSpot.free and self:isSpotValidForItem(currentSpot, data.storeItem) then
+            if currentSpot.free and self:isSpotValidForItem(currentSpot, data.storeItem) and not self:isBlocked(currentSpot) then
                 spot = currentSpot
                 break
             end
@@ -132,14 +138,9 @@ function VisualSalesManager:addSale(item, _)
             return
         end
 
-        if self:collisionTest(spot) then
-            Logging.devInfo("Add sale: Spot blocked")
-            return
-        end
-
         spot.free = false
         spot.saleId = item.id
-        spot.vehicleParams = {
+        local vehicleParams = {
             damage = item.damage,
             wear = item.wear
         }
@@ -152,28 +153,12 @@ function VisualSalesManager:addSale(item, _)
         data:setOwnerFarmId(FarmManager.INVALID_FARM_ID)
 
         data:load(
-            function(_, loadedVehicles, vehicleLoadState, _)
-                if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
-                    spot.vehicleIds = {}
-                    for _, vehicle in ipairs(loadedVehicles) do
-                        table.insert(spot.vehicleIds, vehicle:getUniqueId())
-                        self:addVehicleParams(vehicle, spot.vehicleParams)
-                    end
-
-                    Logging.info("Load vehicle successfully")
-                else
-                    for _, vehicle in ipairs(loadedVehicles) do
-                        vehicle:delete()
-                    end
-                    spot.free = true
-                    spot.vehicleIds = {}
-                    spot.saleId = nil
-                end
-
-                spot.isRemoved = false
-            end,
-            nil,
-            nil
+            self.onVehiclesLoaded,
+            self,
+            {
+                ["spot"] = spot,
+                ["vehicleParams"] = vehicleParams
+            }
         )
     end
 end
@@ -201,7 +186,7 @@ function VisualSalesManager:removeSale(item, index, noEventSend)
 
     if #spot.vehicleIds == 0 then
         spot.isRemoved = true
-        Logging.devInfo("Remove sale: vehicles not loaded yet")
+        Logging.error("Remove sale: vehicles not loaded yet")
     end
 
     local vehicleSystem = g_currentMission.vehicleSystem
@@ -213,14 +198,17 @@ function VisualSalesManager:removeSale(item, index, noEventSend)
         if vehicle == nil then
             Logging.error("Vehicle with unique id not fround: "..vehicleId)
         else
-            vehicle:delete()
+            vehicle:delete(true)
         end
     end
 
     spot.free = true
     spot.vehicleIds = {}
     spot.saleId = nil
-    spot.vehicleParams = {}
+
+    g_asyncTaskManager:addTask(function()
+        self:addSaleIfAvailable()
+	end)
 end
 
 VehicleSaleSystem.removeSale = Utils.overwrittenFunction(VehicleSaleSystem.removeSale, function(saleSystem, superFunc, item, index, noEventSend)
@@ -228,6 +216,47 @@ VehicleSaleSystem.removeSale = Utils.overwrittenFunction(VehicleSaleSystem.remov
     g_visualSalesManager:removeSale(item, index, noEventSend)
 end)
 
+VehicleSaleSystem.removeSaleWithId = Utils.overwrittenFunction(VehicleSaleSystem.removeSaleWithId, function(saleSystem, superFunc, saleItemId)
+    superFunc(saleSystem, saleItemId)
+    g_visualSalesManager:removeSale(nil, saleItemId, nil)
+end)
+
+function VisualSalesManager:addSaleIfAvailable()
+    local vehicleSaleSystem = g_currentMission.vehicleSaleSystem
+    local items = vehicleSaleSystem:getItems()
+
+    for index, item in items do
+        local spot = self:getSpotForSaleId(item.id)
+
+        if spot == nil then
+            self:addSale(item)
+        end
+    end
+end
+
+function VisualSalesManager:onVehiclesLoaded(loadedVehicles, vehicleLoadState, asyncArguments)
+    local spot = asyncArguments.spot
+    local vehicleParams = asyncArguments.vehicleParams
+
+    if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
+        spot.vehicleIds = {}
+        for _, vehicle in ipairs(loadedVehicles) do
+            table.insert(spot.vehicleIds, vehicle:getUniqueId())
+            self:addVehicleParams(vehicle, vehicleParams)
+        end
+
+        Logging.info("Load vehicle successfully")
+    else
+        for _, vehicle in ipairs(loadedVehicles) do
+            vehicle:delete()
+        end
+        spot.free = true
+        spot.vehicleIds = {}
+        spot.saleId = nil
+    end
+
+    spot.isRemoved = false
+end
 
 function VisualSalesManager:addVehicleParams(vehicle, params)
     vehicle:addDamageAmount(params.damage or 0, true)
@@ -305,7 +334,7 @@ function VisualSalesManager:loadSpots(visualSales)
     end
 end
 
-function VisualSalesManager:collisionTest(spot)
+function VisualSalesManager:isBlocked(spot)
     PlacementUtil.tempHasCollision = false
     overlapBox(
         spot.position.x,
