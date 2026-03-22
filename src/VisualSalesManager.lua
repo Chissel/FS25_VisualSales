@@ -132,6 +132,11 @@ function VisualSalesManager:addSale(item, _)
             return
         end
 
+        if self:collisionTest(spot) then
+            Logging.devInfo("Add sale: Spot blocked")
+            return
+        end
+
         spot.free = false
         spot.saleId = item.id
         spot.vehicleParams = {
@@ -146,26 +151,30 @@ function VisualSalesManager:addSale(item, _)
         data:setPosition(spot.position.x, spot.position.y, spot.position.z)
         data:setOwnerFarmId(FarmManager.INVALID_FARM_ID)
 
-        data:load(function(_, loadedVehicles, vehicleLoadState, _)
-            if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
-                spot.vehicleIds = {}
-                for _, vehicle in ipairs(loadedVehicles) do
-                    table.insert(spot.vehicleIds, vehicle:getUniqueId())
-                    self:addVehicleParams(vehicle, spot.vehicleParams)
+        data:load(
+            function(_, loadedVehicles, vehicleLoadState, _)
+                if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
+                    spot.vehicleIds = {}
+                    for _, vehicle in ipairs(loadedVehicles) do
+                        table.insert(spot.vehicleIds, vehicle:getUniqueId())
+                        self:addVehicleParams(vehicle, spot.vehicleParams)
+                    end
+
+                    Logging.info("Load vehicle successfully")
+                else
+                    for _, vehicle in ipairs(loadedVehicles) do
+                        vehicle:delete()
+                    end
+                    spot.free = true
+                    spot.vehicleIds = {}
+                    spot.saleId = nil
                 end
 
-                Logging.info("Load vehicle successfully")
-            else
-                for _, vehicle in ipairs(loadedVehicles) do
-                    vehicle:delete()
-                end
-                spot.free = true
-                spot.vehicleIds = {}
-                spot.saleId = nil
-            end
-
-            spot.isRemoved = false
-        end, nil, nil)
+                spot.isRemoved = false
+            end,
+            nil,
+            nil
+        )
     end
 end
 
@@ -294,6 +303,29 @@ function VisualSalesManager:loadSpots(visualSales)
 
         self.spots[index] = spot
     end
+end
+
+function VisualSalesManager:collisionTest(spot)
+    PlacementUtil.tempHasCollision = false
+    overlapBox(
+        spot.position.x,
+        spot.position.y or getTerrainHeightAtWorldPos(g_terrainNode, spot.position.x, 0, spot.position.z),
+        spot.position.z,
+        spot.rotation.x,
+        spot.rotation.y,
+        spot.rotation.z,
+        spot.maxWidth * 0.5,
+        5 * 0.5,
+        spot.maxLength * 0.5,
+        "PlacementUtil.collisionTestCallback",
+        nil,
+        CollisionFlag.VEHICLE + CollisionFlag.PLAYER + CollisionFlag.DYNAMIC_OBJECT,
+        true,
+        true,
+        false,
+        true
+    )
+    return PlacementUtil.tempHasCollision
 end
 
 function VisualSalesManager:createPosition(values)
