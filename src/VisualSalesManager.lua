@@ -31,13 +31,15 @@ function VisualSalesManager:onDayChanged()
         return
     end
 
+    local vehicleSaleSystem = g_currentMission.vehicleSaleSystem
+
     for index, spot in self.spots do
         if not spot.free then
-            self:removeSale(_, spot.saleId, _)
+            local item = vehicleSaleSystem:getSaleById(spot.saleId)
+            self:removeSale(item, spot.saleId, _)
         end
     end
 
-    local vehicleSaleSystem = g_currentMission.vehicleSaleSystem
     local items = vehicleSaleSystem:getItems()
     local usedValues = {}
     local randomIndex
@@ -125,6 +127,11 @@ function VisualSalesManager:addSale(item, _)
     data:setFilename(item.xmlFilename)
 
     if data.isValid then
+        if self:getSpotForSaleId(item.id) ~= nil then
+            Logging.devInfo("Add sale: Sale already visible")
+            return
+        end
+
         local spot
         for _, currentSpot in pairs(self.spots) do
             if currentSpot.free and self:isSpotValidForItem(currentSpot, data.storeItem) and not self:isBlocked(currentSpot) then
@@ -169,14 +176,14 @@ VehicleSaleSystem.addSale = Utils.overwrittenFunction(VehicleSaleSystem.addSale,
 end)
 
 function VisualSalesManager:removeSale(item, index, noEventSend)
-    if not g_currentMission:getIsServer() then
+    if not g_currentMission:getIsServer() or item == nil then
         return
     end
 
-    local spot = self:getSpotForSaleId(index)
+    local spot = self:getSpotForSaleId(item.id)
 
     if spot == nil then
-        spot = self:getSpotForSaleId(item.id)
+        spot = self:getSpotForSaleId(index)
     end
 
     if spot == nil then
@@ -237,8 +244,9 @@ end
 function VisualSalesManager:onVehiclesLoaded(loadedVehicles, vehicleLoadState, asyncArguments)
     local spot = asyncArguments.spot
     local vehicleParams = asyncArguments.vehicleParams
+    local vehicleSaleSystem = g_currentMission.vehicleSaleSystem
 
-    if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK then
+    if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK and vehicleSaleSystem:getSaleById(spot.saleId) ~= nil then
         spot.vehicleIds = {}
         for _, vehicle in ipairs(loadedVehicles) do
             table.insert(spot.vehicleIds, vehicle:getUniqueId())
