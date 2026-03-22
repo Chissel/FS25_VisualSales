@@ -1,5 +1,5 @@
 *.cmd
-*.txt
+FileDefinition.txt
 .git*
 *.jpg
 *.png
