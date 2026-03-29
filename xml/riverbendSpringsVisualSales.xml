@@ -2,6 +2,7 @@
 <visualSales>
     <!-- position without y value sets it to terrain height -->
     <!--spot position="0 0" rotation="0 0 0" maxWidth="15" maxLength="15" brands="JOHNDEERE CLAAS" categories="TRACTORSS TRACTORSL TRACTORSXL"/-->
+    <spot type="area" startNode="-22.37412643 200 -171.671875" endNode="-42.37412643 200 -171.671875"/>
     <spot position="-22.37412643 -171.671875" rotation="0 -90 0" maxWidth="5" maxLength="5"/>
     <spot position="-22.37400055 -166.96992493" rotation="0 -90 0" maxWidth="4" maxLength="5"/>
     <spot position="-68.42936707 -180" rotation="0 0 0" maxWidth="8" maxLength="13"/>

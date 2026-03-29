@@ -5,7 +5,8 @@ VisualSalesManager = {
         ["$data/maps/mapAS/mapAS.xml"] = "xml/hutanPantaiVisualSales.xml",
         ["$data/maps/mapEU/mapEU.xml"] = "xml/zielonkaVisualSales.xml",
         ["pdlc_highlandsFishingPack.HighlandsFishingMap"] = "xml/kinlaigVisualSales.xml",
-    }
+    },
+    SPOT_TYPE_AREA = "area"
 }
 
 local VisualSalesManager_mt = Class(VisualSalesManager, AbstractManager)
@@ -82,6 +83,10 @@ end
 function VisualSalesManager:isSpotValidForItem(spot, storeItem)
     local valid = true
 
+    if spot.type == VisualSalesManager.SPOT_TYPE_AREA then
+        return true
+    end
+
     if spot.brands ~= nil then
         local validBrand = false
         for _, brand in spot.brands do
@@ -155,8 +160,18 @@ function VisualSalesManager:addSale(item, _)
             data:setBoughtConfigurations(item.boughtConfigurations)
         end
 
-        data:setRotation(spot.rotation.x, spot.rotation.y, spot.rotation.z)
-        data:setPosition(spot.position.x, spot.position.y, spot.position.z)
+        if spot.type == VisualSalesManager.SPOT_TYPE_AREA then
+            link(getRootNode(), spot.startNode)
+            link(spot.startNode, spot.endNode)
+            local place = PlacementUtil.loadPlaceFromNode(spot.startNode, spot.endNode, false)
+            local places = {}
+            table.insert(places, place)
+
+            data:setLoadingPlace(places, spot.usedPlaces)
+        else
+            data:setRotation(spot.rotation.x, spot.rotation.y, spot.rotation.z)
+            data:setPosition(spot.position.x, spot.position.y, spot.position.z)
+        end
         data:setOwnerFarmId(FarmManager.INVALID_FARM_ID)
 
         data:load(
@@ -164,6 +179,7 @@ function VisualSalesManager:addSale(item, _)
             self,
             {
                 ["spot"] = spot,
+                ["saleId"] = item.id,
                 ["vehicleParams"] = vehicleParams
             }
         )
@@ -246,24 +262,39 @@ function VisualSalesManager:onVehiclesLoaded(loadedVehicles, vehicleLoadState, a
     local vehicleParams = asyncArguments.vehicleParams
     local vehicleSaleSystem = g_currentMission.vehicleSaleSystem
 
-    if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK and vehicleSaleSystem:getSaleById(spot.saleId) ~= nil then
-        spot.vehicleIds = {}
-        for _, vehicle in ipairs(loadedVehicles) do
-            table.insert(spot.vehicleIds, vehicle:getUniqueId())
-            self:addVehicleParams(vehicle, vehicleParams)
+    if spot.type == VisualSalesManager.SPOT_TYPE_AREA then
+        if vehicleLoadState == VehicleLoadingState.OK and vehicleSaleSystem:getSaleById(spot.saleId) ~= nil then
+            for _, vehicle in ipairs(loadedVehicles) do
+                table.insert(spot.vehicleIds, vehicle:getUniqueId())
+                self:addVehicleParams(vehicle, vehicleParams)
+            end
+        else
+            for _, vehicle in ipairs(loadedVehicles) do
+                table.removeElement(spot.vehicleIds, vehicle:getUniqueId())
+                vehicle:delete()
+            end
+            spot.free = true
+            table.removeElement(spot.saleIds, asyncArguments.saleId)
         end
-
-        Logging.info("Load vehicle successfully")
     else
-        for _, vehicle in ipairs(loadedVehicles) do
-            vehicle:delete()
-        end
-        spot.free = true
-        spot.vehicleIds = {}
-        spot.saleId = nil
-    end
+        if spot.isRemoved == false and vehicleLoadState == VehicleLoadingState.OK and vehicleSaleSystem:getSaleById(spot.saleId) ~= nil then
+            spot.vehicleIds = {}
+            for _, vehicle in ipairs(loadedVehicles) do
+                table.insert(spot.vehicleIds, vehicle:getUniqueId())
+                self:addVehicleParams(vehicle, vehicleParams)
+            end
 
-    spot.isRemoved = false
+            Logging.info("Load vehicle successfully")
+        else
+            for _, vehicle in ipairs(loadedVehicles) do
+                vehicle:delete()
+            end
+            spot.free = true
+            spot.vehicleIds = {}
+            spot.saleIds = nil
+        end
+        spot.isRemoved = false
+    end
 end
 
 function VisualSalesManager:addVehicleParams(vehicle, params)
@@ -307,42 +338,75 @@ end
 
 function VisualSalesManager:loadSpots(visualSales)
     for index, key in visualSales:iterator("visualSales.spot") do
-		local position = visualSales:getString(key .. "#position")
-        local positionValues = string.split(position, " ")
+		local spotType = visualSales:getString(key .. "#type")
 
-		local rotation = visualSales:getString(key .. "#rotation")
-        local rotationValues = string.split(rotation, " ")
+        if spotType == VisualSalesManager.SPOT_TYPE_AREA then
+            --local nodeIndex = visualSales:getString(key .. "#nodeIndex")
+            --local node = I3DUtil.indexToObject(getRootNode(), nodeIndex)
 
-        local spot = {
-            index = index,
-            position = self:createPosition(positionValues),
-            rotation = {
-                x = tonumber(rotationValues[1]) * (math.pi / 180),
-                y = tonumber(rotationValues[2]) * (math.pi / 180),
-                z = tonumber(rotationValues[3]) * (math.pi / 180)
-            },
-            maxWidth = visualSales:getFloat(key .. "#maxWidth"),
-            maxLength = visualSales:getFloat(key .. "#maxLength"),
-            free = true,
-            vehicleIds = {},
-            isRemoved = false
-        }
+            local startNode = createTransformGroup("startNode")
+            local startNodePosition = visualSales:getString(key .. "#startNode")
+            local startPositionValues = string.split(startNodePosition, " ")
+			setWorldTranslation(startNode, tonumber(startPositionValues[1]), tonumber(startPositionValues[2]), tonumber(startPositionValues[3]))
 
-        local brandValues = visualSales:getString(key .. "#brands")
-        if brandValues ~= nil then
-            spot.brands = string.split(brandValues, " ")
+            local endNode = createTransformGroup("endNode")
+            local endNodePosition = visualSales:getString(key .. "#endNode")
+            local endPositionValues = string.split(endNodePosition, " ")
+			setWorldTranslation(startNode, tonumber(endPositionValues[1]), tonumber(endPositionValues[2]), tonumber(endPositionValues[3]))
+
+            local spot = {
+                type = VisualSalesManager.SPOT_TYPE_AREA,
+                index = index,
+                startNode = startNode,
+                endNode = endNode,
+                usedPlaces = {},
+                free = true,
+                vehicleIds = {},
+                isRemoved = false
+            }
+            self.spots[index] = spot
+        else
+            local position = visualSales:getString(key .. "#position")
+            local positionValues = string.split(position, " ")
+
+            local rotation = visualSales:getString(key .. "#rotation")
+            local rotationValues = string.split(rotation, " ")
+
+            local spot = {
+                index = index,
+                position = self:createPosition(positionValues),
+                rotation = {
+                    x = tonumber(rotationValues[1]) * (math.pi / 180),
+                    y = tonumber(rotationValues[2]) * (math.pi / 180),
+                    z = tonumber(rotationValues[3]) * (math.pi / 180)
+                },
+                maxWidth = visualSales:getFloat(key .. "#maxWidth"),
+                maxLength = visualSales:getFloat(key .. "#maxLength"),
+                free = true,
+                vehicleIds = {},
+                isRemoved = false
+            }
+
+            local brandValues = visualSales:getString(key .. "#brands")
+            if brandValues ~= nil then
+                spot.brands = string.split(brandValues, " ")
+            end
+
+            local categoryValues = visualSales:getString(key .. "#categories")
+            if categoryValues ~= nil then
+                spot.categories = string.split(categoryValues, " ")
+            end
+
+            self.spots[index] = spot
         end
-
-        local categoryValues = visualSales:getString(key .. "#categories")
-        if categoryValues ~= nil then
-            spot.categories = string.split(categoryValues, " ")
-        end
-
-        self.spots[index] = spot
     end
 end
 
 function VisualSalesManager:isBlocked(spot)
+    if spot.type == VisualSalesManager.SPOT_TYPE_AREA then
+        return false
+    end
+
     PlacementUtil.tempHasCollision = false
     overlapBox(
         spot.position.x,
@@ -451,7 +515,6 @@ VehicleSaleSystem.loadFromXMLFile = Utils.overwrittenFunction(VehicleSaleSystem.
     g_visualSalesManager:loadFromXMLFile()
     return returnValue
 end)
-
 
 g_visualSalesManager = VisualSalesManager.new()
 addModEventListener(g_visualSalesManager)
